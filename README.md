@@ -20,6 +20,7 @@ Both manual-downloading models from our github repo and auto-downloading models 
 ## Top News
 
 **`2025-03-02`** [inswapper-512-live](https://github.com/deepinsight/inswapper-512-live) launched.
+**`2025-06-18`** Template code for high resolution face swapping (`inswapper_1024.onnx`) released.
 
 **`2024-08-01`** We’ve integrated our most advanced face-swapping models, **inswapper\_cyn** and **inswapper\_dax**, into the [Picsi.Ai](https://www.picsi.ai) face-swapping service. These models outperform nearly all commercial alternatives and our previous open-source model (inswapper_128).
 
@@ -34,6 +35,7 @@ of [ECCV-2022 WCPA Workshop](https://sites.google.com/view/wcpa2022), [paper](ht
 ## ChangeLogs
 
 **`2025-03-02`** [inswapper-512-live](https://github.com/deepinsight/inswapper-512-live) launched.
+**`2025-06-18`** Template code for high resolution face swapping (`inswapper_1024.onnx`) released.
 
 **`2024-08-01`** We’ve integrated our most advanced face-swapping models, **inswapper\_cyn** and **inswapper\_dax**, into the [Picsi.Ai](https://www.picsi.ai) face-swapping service. These models outperform nearly all commercial alternatives and our previous open-source model (inswapper_128).
 

@@ -25,6 +25,7 @@ class INSwapper():
         self.input_names = []
         for inp in inputs:
             self.input_names.append(inp.name)
+        self.has_mask = len(inputs) == 3
         outputs = self.session.get_outputs()
         output_names = []
         for out in outputs:
@@ -37,20 +38,30 @@ class INSwapper():
         self.input_shape = input_shape
         print('inswapper-shape:', self.input_shape)
         self.input_size = tuple(input_shape[2:4][::-1])
+        self.scale = self.input_size[0] / 128.0
 
-    def forward(self, img, latent):
+    def forward(self, img, latent, mask=None):
         img = (img - self.input_mean) / self.input_std
-        pred = self.session.run(self.output_names, {self.input_names[0]: img, self.input_names[1]: latent})[0]
+        feed = {self.input_names[0]: img, self.input_names[1]: latent}
+        if self.has_mask and mask is not None:
+            feed[self.input_names[2]] = mask
+        pred = self.session.run(self.output_names, feed)[0]
         return pred
 
     def get(self, img, target_face, source_face, paste_back=True):
         aimg, M = face_align.norm_crop2(img, target_face.kps, self.input_size[0])
         blob = cv2.dnn.blobFromImage(aimg, 1.0 / self.input_std, self.input_size,
                                       (self.input_mean, self.input_mean, self.input_mean), swapRB=True)
+        mask_blob = None
+        if self.has_mask and hasattr(target_face, 'mask'):
+            mask_blob = cv2.dnn.blobFromImage(target_face.mask, 1.0 / 255, self.input_size, (0,0,0), swapRB=False)
         latent = source_face.normed_embedding.reshape((1,-1))
         latent = np.dot(latent, self.emap)
         latent /= np.linalg.norm(latent)
-        pred = self.session.run(self.output_names, {self.input_names[0]: blob, self.input_names[1]: latent})[0]
+        feed = {self.input_names[0]: blob, self.input_names[1]: latent}
+        if self.has_mask and mask_blob is not None:
+            feed[self.input_names[2]] = mask_blob
+        pred = self.session.run(self.output_names, feed)[0]
         #print(latent.shape, latent.dtype, pred.shape)
         img_fake = pred.transpose((0,2,3,1))[0]
         bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:,:,::-1]
@@ -78,20 +89,20 @@ class INSwapper():
             mask_h = np.max(mask_h_inds) - np.min(mask_h_inds)
             mask_w = np.max(mask_w_inds) - np.min(mask_w_inds)
             mask_size = int(np.sqrt(mask_h*mask_w))
-            k = max(mask_size//10, 10)
+            k = max(int(mask_size//10 * self.scale), int(10 * self.scale))
             #k = max(mask_size//20, 6)
             #k = 6
             kernel = np.ones((k,k),np.uint8)
             img_mask = cv2.erode(img_mask,kernel,iterations = 1)
             kernel = np.ones((2,2),np.uint8)
             fake_diff = cv2.dilate(fake_diff,kernel,iterations = 1)
-            k = max(mask_size//20, 5)
+            k = max(int(mask_size//20 * self.scale), int(5 * self.scale))
             #k = 3
             #k = 3
             kernel_size = (k, k)
             blur_size = tuple(2*i+1 for i in kernel_size)
             img_mask = cv2.GaussianBlur(img_mask, blur_size, 0)
-            k = 5
+            k = int(5 * self.scale)
             kernel_size = (k, k)
             blur_size = tuple(2*i+1 for i in kernel_size)
             fake_diff = cv2.GaussianBlur(fake_diff, blur_size, 0)
